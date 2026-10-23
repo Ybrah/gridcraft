@@ -21,7 +21,7 @@ connection; nothing sent after it runs. Blank lines are skipped.
 
 The web build has no TCP port; a same-origin page hosting it in an iframe (`?host=parent`) sends
 the same methods as `gridcraft:command` messages and hears `gridcraft:selection` when the
-selection moves. See "Driving it from the page" in
+selection moves, and `gridcraft:action` / `gridcraft:cell-click` for its host extensions. See "Driving it from the page" in
 [`packaging/web/README.md`](../packaging/web/README.md).
 
 ## Methods
@@ -45,6 +45,9 @@ selection moves. See "Driving it from the page" in
 | `ui.screenshot` | `{path?}` | PNG of the window (base64 when no path). Animations are settled first: the picture shows the final state |
 | `ui.set` | `{dark?, formulaBar?, ribbonCollapsed?, animations?}` | UI preferences (`formulaBar` runs `view.formulaBar`) |
 | `ui.resize` / `ui.focus` | `{width, height}` | Window control |
+| `ui.host.items.set` / `ui.host.items.clear` / `ui.host.invoke` (via `engine.execute`) | `{items: [{id, label, icon?, tooltip?, places?}], tab?}` / – / `{id}` | Host extensions: the client's own cell-menu items and ribbon tab |
+| `ui.decorations.set` / `ui.decorations.clear` / `ui.decorations.get` (via `engine.execute`) | `{sheet?, cells: {A1: {fill?, badge?, tooltip?, id?}}, replace?}` / `{sheet?}` / `{sheet?}` | Host extensions: tints and corner badges on cells (UI-only, never saved) |
+| `ui.host.events` (via `engine.execute`) | | Takes the waiting `gridcraft:action` / `gridcraft:cell-click` events, oldest first (the web bridge posts them to the page instead) |
 | `app.open` / `app.save` / `app.quit` | `{path, password?}` / `{path?}` | Files and lifetime. `password` opens a password-protected workbook; without it, such a workbook returns an error (never a dialog) |
 
 Any other method name that is a command id (e.g. `home.bold`) runs that command.

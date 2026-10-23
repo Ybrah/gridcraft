@@ -90,6 +90,8 @@ Messages are plain objects posted with `postMessage` to/from the page's own orig
 | `gridcraft:command` | from the page | `id`, `method`, `params`: any method of the [control protocol](../../docs/control-protocol.md) |
 | `gridcraft:result` | to the page | `id`, `ok`, `result` or `error`: one per command |
 | `gridcraft:selection` | to the page | `sheet`, `active` (`B6`), `ranges` (`["B6:C9"]`): when a workbook opens and whenever the selection or the active sheet changes |
+| `gridcraft:action` | to the page | `id`, `sheet`, `active`, `ranges`: the user chose one of the page's own items (see below) |
+| `gridcraft:cell-click` | to the page | `sheet`, `cell`, `id`: the user clicked a cell the page decorated, even the active one |
 
 Commands run on the next frame, in order, as if the user had given them, so they are undoable and
 mark the workbook dirty. For example, write a value and select the cell:
@@ -103,6 +105,33 @@ frame.contentWindow.postMessage({ type: "gridcraft:command", id: 2, method: "eng
 
 `ui.screenshot` isn't available in the browser (it answers with an error); everything else in
 the control protocol is. At most 1,000 commands wait between two frames; more are refused.
+
+### Host extensions: the page's own menu items and cell marks
+
+A page can add its own features to GridCraft without forking it, through UI-only commands (run
+with `engine.execute`; nothing is saved in the workbook, undone or journaled):
+
+- `ui.host.items.set {items: [{id, label, icon?, tooltip?, places?: ["cell", "ribbon"]}], tab?}`
+  adds items at the top of the cell menu and as buttons on a ribbon tab named `tab` (default
+  "Add-ins"). Labels are shown as given, so send them in the user's language; `icon` is a name
+  from Insert › Icons (`link`, `book`, `search`…). Choosing one posts `gridcraft:action`.
+  `ui.host.items.clear` removes them; `ui.host.invoke {id}` acts as if the user chose one.
+- `ui.decorations.set {sheet?, cells: {"B6": {fill?, badge?, tooltip?, id?}}, replace?}` tints
+  cells (`#RRGGBB` or `#RRGGBBAA`), marks their top-left corner with a `badge` colour and shows
+  `tooltip` on hover; clicking one posts `gridcraft:cell-click` with its `id`. The sheet
+  defaults to the active one; `replace` (default true) drops that sheet's previous marks.
+  `ui.decorations.clear {sheet?}` and `ui.decorations.get {sheet?}` clear and read them. Marks
+  follow cell addresses: send them again after inserting or deleting rows.
+
+```js
+frame.contentWindow.postMessage({ type: "gridcraft:command", id: 3, method: "engine.execute",
+  params: { command: "ui.host.items.set", params: { tab: "Audit",
+    items: [{ id: "reference", label: "Reference…", icon: "link" }] } } }, location.origin);
+frame.contentWindow.postMessage({ type: "gridcraft:command", id: 4, method: "engine.execute",
+  params: { command: "ui.decorations.set", params: {
+    cells: { B6: { fill: "#1E88E526", badge: "#1565C0", tooltip: "Invoice 5320984863 p.1", id: "r1" } } } } },
+  location.origin);
+```
 
 ## Renderer selection
 

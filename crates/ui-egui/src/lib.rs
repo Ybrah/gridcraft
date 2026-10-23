@@ -18,6 +18,7 @@ pub mod fonts;
 pub mod formula_bar;
 mod formula_locale;
 pub mod grid;
+pub mod host_ext;
 pub mod i18n;
 pub mod icons;
 pub mod keymap;
@@ -251,6 +252,8 @@ pub struct SheetApp {
     pub synthetic: std::collections::VecDeque<Vec<egui::Event>>,
     pub control_rx: Option<std::sync::mpsc::Receiver<ControlRequest>>,
     pub grid: grid::GridState,
+    /// Menu items, ribbon tab and cell decorations an embedding page added (UI-only).
+    pub host: host_ext::HostExt,
     pub perf: Perf,
     pub fonts_ready: bool,
     fonts_set: bool,
@@ -312,6 +315,7 @@ impl SheetApp {
                 last_font_color: "#C00000".into(),
                 ..Default::default()
             },
+            host: host_ext::HostExt::default(),
             perf: Perf::default(),
             fonts_ready: false,
             fonts_set: false,
@@ -702,6 +706,29 @@ impl SheetApp {
                 self.notice = None;
                 Ok(Json::Null)
             }
+            "ui.host.items.set" => self.host.set_items(p),
+            "ui.host.items.clear" => {
+                self.host.clear_items();
+                Ok(Json::Null)
+            }
+            "ui.decorations.set" => {
+                let active = self.session.active().and_then(|d| d.wb.active().map(|s| s.name.clone())).unwrap_or_default();
+                self.host.set_decorations(p, &active)
+            }
+            "ui.decorations.clear" => {
+                self.host.clear_decorations(p.get("sheet").and_then(Json::as_str));
+                Ok(Json::Null)
+            }
+            "ui.host.invoke" => match p.get("id").and_then(Json::as_str) {
+                Some(id) if self.host.items.iter().any(|i| i.id == id) => {
+                    host_ext::invoke(self, id);
+                    Ok(Json::Null)
+                }
+                Some(id) => Err(format!("no host item {id:?}")),
+                None => Err("missing `id`".into()),
+            },
+            "ui.decorations.get" => Ok(self.host.get_decorations(p.get("sheet").and_then(Json::as_str))),
+            "ui.host.events" => Ok(Json::Array(self.host.take_events())),
             _ => return None,
         };
         Some(r)

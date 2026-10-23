@@ -87,9 +87,13 @@ fn main() {
     } else {
         session.new_workbook();
     }
+    // UI-only commands (`ui.*`, such as host extensions) run on the app once it exists.
+    let mut ui_cmds = vec![];
     for c in &cmds {
         let (id, p) = c.split_once('=').map(|(a, b)| (a.to_string(), serde_json::from_str(b).unwrap_or(json!({})))).unwrap_or((c.clone(), json!({})));
-        if let Err(e) = session.execute(&id, p) {
+        if id.starts_with("ui.") {
+            ui_cmds.push((id, p));
+        } else if let Err(e) = session.execute(&id, p) {
             eprintln!("{id}: {e}");
         }
     }
@@ -110,6 +114,11 @@ fn main() {
                 }
                 if let Some(t) = tab {
                     app.ui.ribbon_tab = t;
+                }
+                for (id, p) in ui_cmds {
+                    if let Err(e) = app.run(&id, p) {
+                        eprintln!("{id}: {e}");
+                    }
                 }
                 app.grid.pane = pane;
                 app.selected_chart = chart;

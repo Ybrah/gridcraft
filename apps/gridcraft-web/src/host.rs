@@ -17,6 +17,10 @@
 //! - `gridcraft:result` (to the parent): `{ id, ok, result | error }`, one per command.
 //! - `gridcraft:selection` (to the parent): `{ sheet, active, ranges }` (A1 text) once when a
 //!   workbook opens and whenever the selection or the active sheet changes.
+//! - `gridcraft:action` (to the parent): `{ id, sheet, active, ranges }` when the user picks one
+//!   of the parent's own menu items (`ui.host.items.set`: cell menu and a ribbon tab).
+//! - `gridcraft:cell-click` (to the parent): `{ sheet, cell, id }` when the user clicks a cell
+//!   the parent decorated (`ui.decorations.set`), even if it was already the active cell.
 //!
 //! Only the parent window on the page's own origin is heard or answered. In host mode the page
 //! starts with an empty workbook instead of a sample, and the parent guards leaving the page.
@@ -131,6 +135,9 @@ impl Bridge {
         if self.reported.get() != Some(dirty) && self.send(&[("type", "gridcraft:dirty".into()), ("dirty", dirty.into())]) {
             self.reported.set(Some(dirty));
         }
+        // Host extensions: a menu item chosen, a decorated cell clicked (after the selection
+        // they moved, so the parent hears the new selection first).
+        let events = app.host.take_events();
         let selection = selection_of(app);
         if *self.selection.borrow() != selection {
             let sent = match &selection {
@@ -146,6 +153,12 @@ impl Bridge {
             if sent {
                 *self.selection.borrow_mut() = selection;
             }
+        }
+        for event in &events {
+            self.send_json(event);
+        }
+        if !events.is_empty() {
+            ctx.request_repaint();
         }
     }
 

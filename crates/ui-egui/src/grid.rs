@@ -2148,6 +2148,9 @@ fn interact(app: &mut SheetApp, ui: &mut egui::Ui, resp: &egui::Response, geo: &
             select_ranges(app, RangeRef::cell(c), true, c);
         } else {
             let _ = app.session.run("selection.set", json!({"cell": c.a1()}));
+            if primary_clicked && !mods.any() {
+                crate::host_ext::cell_clicked(app, &sh.name, c);
+            }
             if primary_clicked && wb.styles.get(sh.style_id(c)).num_fmt.as_str() == "checkbox" {
                 let _ = app.run("cell.toggleCheckbox", json!({"cell": c.a1()}));
             }
@@ -2920,6 +2923,17 @@ fn context_menu(app: &mut SheetApp, ui: &mut egui::Ui) {
                 items.insert(6, item);
             }
             let lang = crate::i18n::current(ui.ctx());
+            // Items an embedding page added (shown as given: the page translates them).
+            let host_items: Vec<(String, String)> = app.host.items.iter().filter(|i| i.cell_menu).map(|i| (i.id.clone(), i.label.clone())).collect();
+            if !host_items.is_empty() {
+                for (id, label) in &host_items {
+                    if ui.add(egui::Button::new(egui::RichText::new(label).strong()).frame(false).min_size(vec2(190.0, 20.0))).clicked() {
+                        close = true;
+                        crate::host_ext::invoke(app, id);
+                    }
+                }
+                ui.separator();
+            }
             for (label, id) in items {
                 if label == "-" {
                     ui.separator();
@@ -3112,6 +3126,8 @@ pub(crate) fn paint_overlays(
             p.add(egui::Shape::convex_polygon(vec![to, to - d * 9.0 + n * 4.0, to - d * 9.0 - n * 4.0], blue, Stroke::NONE));
         }
     }
+    // Decorations an embedding page put on cells (host extensions).
+    crate::host_ext::paint(app, ui, p, geo, sh);
     let _ = (wb, si);
 }
 

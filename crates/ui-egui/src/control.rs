@@ -198,6 +198,21 @@ pub fn handle(app: &mut SheetApp, ctx: &egui::Context, method: &str, p: &Json) -
                 ("app.language.set", "Interface Language", "{language: \"en\"|\"zh\"|\"ja\"|\"ko\"|\"ru\"|\"pt\"|\"de\"|\"cs\"} (alias: code)"),
                 ("app.language.english", "Interface Language: English", ""),
                 ("app.language.japanese", "Interface Language: Japanese", ""),
+                (
+                    "ui.host.items.set",
+                    "Host Menu Items",
+                    "{items: [{id, label, icon?, tooltip?, places?: [\"cell\", \"ribbon\"]}], tab?} → {items, tab}; choosing one emits gridcraft:action",
+                ),
+                ("ui.host.items.clear", "Clear Host Menu Items", ""),
+                ("ui.host.invoke", "Choose Host Menu Item", "{id} → like choosing it: emits gridcraft:action with the selection"),
+                (
+                    "ui.decorations.set",
+                    "Cell Decorations",
+                    "{sheet?, cells: {A1: {fill?: #RRGGBB[AA], badge?: #RRGGBB, tooltip?, id?}}, replace?: bool} → {sheet, cells}; clicking one emits gridcraft:cell-click",
+                ),
+                ("ui.decorations.clear", "Clear Cell Decorations", "{sheet?}"),
+                ("ui.decorations.get", "Read Cell Decorations", "{sheet?} → {sheet: {A1: {fill, badge, tooltip, id}}}"),
+                ("ui.host.events", "Host Events", "→ [gridcraft:action | gridcraft:cell-click events], oldest first; taken once"),
             ] {
                 v.push(json!({"id": id, "label": label, "params": params, "enabled": true, "ui": true}));
             }

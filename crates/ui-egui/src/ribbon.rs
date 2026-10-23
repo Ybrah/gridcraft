@@ -182,6 +182,11 @@ pub fn show(app: &mut SheetApp, ui: &mut Ui) {
                     let mut tabs: Vec<&str> = TABS.to_vec();
                     let ctx_tabs = contextual_tabs(app);
                     tabs.extend(ctx_tabs.iter());
+                    // An embedding page's tab (host extensions), after the built-in ones.
+                    let host_tab = app.host.tab.clone();
+                    if let Some(tab) = host_tab.as_deref() {
+                        tabs.push(tab);
+                    }
                     for tab in tabs {
                         let active = app.ui.ribbon_tab == tab;
                         let contextual = ctx_tabs.contains(&tab);
@@ -235,6 +240,10 @@ pub fn show(app: &mut SheetApp, ui: &mut Ui) {
                 egui::ScrollArea::horizontal().scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden).show(ui, |ui| {
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
+                        if app.host.tab.as_deref() == Some(app.ui.ribbon_tab.as_str()) {
+                            crate::host_ext::ribbon(app, ui);
+                            return;
+                        }
                         match app.ui.ribbon_tab.as_str() {
                             "Home" => home(app, ui),
                             "Insert" => insert(app, ui),
